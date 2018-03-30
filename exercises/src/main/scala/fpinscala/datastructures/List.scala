@@ -61,9 +61,16 @@ object List { // `List` companion object. Contains functions for creating and wo
 
   def drop[A](l: List[A], n: Int): List[A] = if (n == 0) l else drop(tail(l), n - 1)
 
-  def dropWhile[A](l: List[A], f: A => Boolean): List[A] = ???
+  def dropWhile[A](l: List[A], f: A => Boolean): List[A] = l match {
+    case Cons(h, t) if f(h) => dropWhile(t, f)
+    case _ => l
+  }
 
-  def init[A](l: List[A]): List[A] = ???
+  def init[A](l: List[A]): List[A] = l match {
+    case Nil => Nil
+    case Cons(_, Nil) => Nil
+    case Cons(h, t) => Cons(h, init(t))
+  }
 
   def length[A](l: List[A]): Int = foldRight(l, 0) { case (_, i) => i + 1 }
 
@@ -109,8 +116,20 @@ object List { // `List` companion object. Contains functions for creating and wo
   }
 
   def zipWith[A, B, C](as: List[A], bs: List[B])(f: (A, B) => C): List[C] = (as, bs) match {
-    case (_, Nil) => Nil
-    case (Nil, _) => Nil
+    case (_, Nil)                   => Nil
+    case (Nil, _)                   => Nil
     case (Cons(a, at), Cons(b, bt)) => Cons(f(a, b), zipWith(at, bt)(f))
+  }
+
+  def all(xs: List[Boolean]): Boolean = foldRight(xs, true)(_ && _)
+
+  def hasSubsequence[A](sup: List[A], sub: List[A]): Boolean = {
+    val isPrefix = all(zipWith(sup, sub)(_ == _)) && length(sub) <= length(sup)
+
+    sup match {
+      case Cons(_, _) if (isPrefix) => true
+      case Cons(_, ps)              => hasSubsequence(ps, sub)
+      case Nil                      => false
+    }
   }
 }
