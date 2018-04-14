@@ -4,7 +4,10 @@ package fpinscala.errorhandling
 import scala.{Option => _, Either => _, Left => _, Right => _, _} // hide std library `Option` and `Either`, since we are writing our own in this chapter
 
 sealed trait Either[+E,+A] {
- def map[B](f: A => B): Either[E, B] = ???
+ def map[B](f: A => B): Either[E, B] = this match {
+   case Right(a) => Right(f(a))
+   case Left(e) => Left(e)
+ }
 
  def flatMap[EE >: E, B](f: A => Either[EE, B]): Either[EE, B] = ???
 
@@ -20,13 +23,13 @@ object Either {
 
   def sequence[E,A](es: List[Either[E,A]]): Either[E,List[A]] = ???
 
-  def mean(xs: IndexedSeq[Double]): Either[String, Double] = 
-    if (xs.isEmpty) 
+  def mean(xs: IndexedSeq[Double]): Either[String, Double] =
+    if (xs.isEmpty)
       Left("mean of empty list!")
-    else 
+    else
       Right(xs.sum / xs.length)
 
-  def safeDiv(x: Int, y: Int): Either[Exception, Int] = 
+  def safeDiv(x: Int, y: Int): Either[Exception, Int] =
     try Right(x / y)
     catch { case e: Exception => Left(e) }
 
