@@ -9,7 +9,7 @@ trait Stream[+A] {
       case _ => z
     }
 
-  def exists(p: A => Boolean): Boolean = 
+  def exists(p: A => Boolean): Boolean =
     foldRight(false)((a, b) => p(a) || b) // Here `b` is the unevaluated recursive step that folds the tail of the stream. If `p(a)` returns `true`, `b` will never be evaluated and the computation terminates early.
 
   @annotation.tailrec
@@ -17,15 +17,47 @@ trait Stream[+A] {
     case Empty => None
     case Cons(h, t) => if (f(h())) Some(h()) else t().find(f)
   }
-  def take(n: Int): Stream[A] = ???
 
-  def drop(n: Int): Stream[A] = ???
+  def toList: List[A] = {
+    val buf = collection.mutable.ListBuffer[A]()
 
-  def takeWhile(p: A => Boolean): Stream[A] = ???
+    @annotation.tailrec
+    def go(s: Stream[A]): List[A] = s match {
+        case Cons(h, t) =>
+          buf += h()
+          go(t())
+        case Empty => buf.toList
+      }
+      go(this)
+    }
 
-  def forAll(p: A => Boolean): Boolean = ???
+  def take(n: Int): Stream[A] = this match {
+    case Cons(h, t) if n > 0 => cons(h(), t().take(n - 1))
+    case _ => empty
+  }
 
-  def headOption: Option[A] = ???
+  @annotation.tailrec
+  final def drop(n: Int): Stream[A] = this match {
+    case Cons(_, t) if n > 0 => t().drop(n - 1)
+    case _ => this
+  }
+
+  def takeWhile(p: A => Boolean): Stream[A] =
+    this match {
+      case Cons(h, t) if p(h()) => cons(h(), t().takeWhile(p))
+      case _ => empty
+    }
+
+  def forAll(p: A => Boolean): Boolean = foldRight(true)((a, b) => p(a) && b)
+
+  def takeWhileViaFoldRight(p: A => Boolean): Stream[A] =
+    foldRight(empty[A])((a, s) => if (p(a)) cons(a, s) else s)
+
+  def takeWhile_1(f: A => Boolean): Stream[A] =
+    foldRight(empty[A])((h,t) => if (f(h)) cons(h,t) else empty)
+
+  def headOption: Option[A] =
+    foldRight(Option.empty[A])((a, _) => Some(a))
 
   // 5.7 map, filter, append, flatmap using foldRight. Part of the exercise is
   // writing your own function signatures.
@@ -45,7 +77,7 @@ object Stream {
   def empty[A]: Stream[A] = Empty
 
   def apply[A](as: A*): Stream[A] =
-    if (as.isEmpty) empty 
+    if (as.isEmpty) empty
     else cons(as.head, apply(as.tail: _*))
 
   val ones: Stream[Int] = Stream.cons(1, ones)
